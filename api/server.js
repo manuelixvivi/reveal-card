@@ -149,4 +149,130 @@ app.get('/api/admin/export', async (req, res) => {
     }
 });
 
+// ============================================
+// DATASET MANAGEMENT ENDPOINTS
+// ============================================
+
+// Get All Datasets
+app.post('/api/admin/datasets', async (req, res) => {
+    // Verifikasi admin credentials
+    const { admin_id, admin_date } = req.body;
+    if (admin_id !== '090006' || admin_date !== '1976/02/14') {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    try {
+        const datasets = await prisma.dataset.findMany({
+            include: {
+                _count: { select: { records: true } }
+            },
+            orderBy: { created_at: 'desc' }
+        });
+
+        const formatted = datasets.map(ds => ({
+            id: ds.id,
+            name: ds.name,
+            description: ds.description || '',
+            created_at: ds.created_at,
+            is_active: ds.is_active === 1,
+            actual_count: ds._count.records
+        }));
+
+        res.json(formatted);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Activate Dataset
+app.post('/api/admin/activate', async (req, res) => {
+    const { admin_id, admin_date, dataset_id } = req.body;
+    
+    if (admin_id !== '090006' || admin_date !== '1976/02/14') {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    try {
+        await prisma.$transaction(async (tx) => {
+            // Deactivate all
+            await tx.dataset.updateMany({
+                data: { is_active: 0 }
+            });
+            
+            // Activate selected
+            await tx.dataset.update({
+                where: { id: parseInt(dataset_id) },
+                data: { is_active: 1 }
+            });
+        });
+
+        res.json({ success: true, message: 'Dataset activated' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Delete Dataset
+app.post('/api/admin/delete', async (req, res) => {
+    const { admin_id, admin_date, dataset_id } = req.body;
+    
+    if (admin_id !== '090006' || admin_date !== '1976/02/14') {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    try {
+        await prisma.dataset.delete({
+            where: { id: parseInt(dataset_id) }
+        });
+
+        res.json({ success: true, message: 'Dataset deleted' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get Activity Logs
+app.post('/api/admin/logs', async (req, res) => {
+    const { admin_id, admin_date } = req.body;
+    
+    if (admin_id !== '090006' || admin_date !== '1976/02/14') {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    try {
+        // Jika ada tabel logs, gunakan itu. Jika tidak, return array kosong
+        // Atau Anda bisa buat log dari aktivitas dataset
+        const datasets = await prisma.dataset.findMany({
+            orderBy: { created_at: 'desc' },
+            take: 10,
+            select: {
+                id: true,
+                name: true,
+                created_at: true,
+                is_active: true
+            }
+        });
+
+        const logs = datasets.map(ds => ({
+            id: ds.id,
+            action: ds.is_active ? 'DATASET_ACTIVATED' : 'DATASET_CREATED',
+            details: `Dataset "${ds.name}" ${ds.is_active ? 'diaktifkan' : 'dibuat'}`,
+            timestamp: ds.created_at
+        }));
+
+        res.json(logs);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Download Template CSV
+app.get('/api/admin/template', (req, res) => {
+    const template = 'nim,name,birth_date,position,division,note\n090001,Budi Santoso,1990/05/15,Staff IT,IT,Selamat datang!\n090002,Ani Wijaya,1992/08/22,Manager HRD,HRD,Terima kasih!';
+    
+    res.header('Content-Type', 'text/csv');
+    res.attachment('template_reveal_card.csv');
+    res.send(template);
+});
+
 module.exports = app;
