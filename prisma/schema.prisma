@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("postgres://01211b74e1b99a3bda280b6e1edd90a52ad02bd6bec3f9c2dc1f4aeec2cdbf39:sk_9OOXjh1f9NdLNe8SjmJzw@db.prisma.io:5432/postgres?sslmode=require") // Menggunakan URL khusus Prisma dari Vercel
+  url      = env("PRISMA_DATABASE_URL") // Menggunakan URL khusus Prisma dari Vercel
 }
 
 model Dataset {
