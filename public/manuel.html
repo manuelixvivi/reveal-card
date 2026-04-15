@@ -930,7 +930,7 @@
             showLoading(true);
             
             const formData = new FormData();
-            formData.append('csv', selectedFile);
+            formData.append('csvFile', selectedFile);
             formData.append('name', document.getElementById('datasetName').value);
             formData.append('description', document.getElementById('datasetDesc').value);
             formData.append('admin_id', adminCredentials.admin_id);
