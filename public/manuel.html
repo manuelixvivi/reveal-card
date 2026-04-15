@@ -943,8 +943,8 @@
 - Admin Date: ${adminCredentials.admin_date}`);
 
             try {
-                logDebug(`🌐 Sending POST request to /api/admin/upload`);
-                const response = await fetch('/api/admin/upload', {
+                logDebug(`🌐 Sending POST request to /api/admin/import`);
+                const response = await fetch('/api/admin/import', {
                     method: 'POST',
                     body: formData
                 });
