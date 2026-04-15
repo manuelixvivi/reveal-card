@@ -22,6 +22,23 @@ app.use('/api/', limiter);
 
 const upload = multer({ dest: '/tmp/' });
 
+// ============================================
+// HELPER: Admin Auth Middleware
+// ============================================
+function requireAdmin(req, res, next) {
+    const adminId = req.body.admin_id || req.body.adminId;
+    const adminDate = req.body.admin_date || req.body.adminDate;
+    
+    if (adminId !== '090006' || adminDate !== '1976/02/14') {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    next();
+}
+
+// ============================================
+// ADMIN ENDPOINTS
+// ============================================
+
 // Admin Login
 app.post('/api/admin/login', (req, res) => {
     const { adminId, adminDate } = req.body;
@@ -32,18 +49,8 @@ app.post('/api/admin/login', (req, res) => {
     }
 });
 
-// ============================================
-// DATASET MANAGEMENT ENDPOINTS
-// ============================================
-
-// Get All Datasets
-app.post('/api/admin/datasets', async (req, res) => {
-    // Verifikasi admin credentials
-    const { admin_id, admin_date } = req.body;
-    if (admin_id !== '090006' || admin_date !== '1976/02/14') {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
-
+// GET DATASETS - Endpoint yang hilang!
+app.post('/api/admin/datasets', requireAdmin, async (req, res) => {
     try {
         const datasets = await prisma.dataset.findMany({
             include: {
@@ -63,18 +70,15 @@ app.post('/api/admin/datasets', async (req, res) => {
 
         res.json(formatted);
     } catch (err) {
+        console.error('Error loading datasets:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// Activate Dataset
-app.post('/api/admin/activate', async (req, res) => {
-    const { admin_id, admin_date, dataset_id } = req.body;
+// ACTIVATE DATASET
+app.post('/api/admin/activate', requireAdmin, async (req, res) => {
+    const { dataset_id } = req.body;
     
-    if (admin_id !== '090006' || admin_date !== '1976/02/14') {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
-
     try {
         await prisma.$transaction(async (tx) => {
             // Deactivate all
@@ -89,45 +93,36 @@ app.post('/api/admin/activate', async (req, res) => {
             });
         });
 
-        res.json({ success: true, message: 'Dataset activated' });
+        res.json({ success: true, message: 'Dataset berhasil diaktifkan' });
     } catch (err) {
+        console.error('Error activating dataset:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// Delete Dataset
-app.post('/api/admin/delete', async (req, res) => {
-    const { admin_id, admin_date, dataset_id } = req.body;
+// DELETE DATASET
+app.post('/api/admin/delete', requireAdmin, async (req, res) => {
+    const { dataset_id } = req.body;
     
-    if (admin_id !== '090006' || admin_date !== '1976/02/14') {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
-
     try {
         await prisma.dataset.delete({
             where: { id: parseInt(dataset_id) }
         });
 
-        res.json({ success: true, message: 'Dataset deleted' });
+        res.json({ success: true, message: 'Dataset berhasil dihapus' });
     } catch (err) {
+        console.error('Error deleting dataset:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// Get Activity Logs
-app.post('/api/admin/logs', async (req, res) => {
-    const { admin_id, admin_date } = req.body;
-    
-    if (admin_id !== '090006' || admin_date !== '1976/02/14') {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
-
+// GET LOGS - Endpoint yang hilang!
+app.post('/api/admin/logs', requireAdmin, async (req, res) => {
     try {
-        // Jika ada tabel logs, gunakan itu. Jika tidak, return array kosong
-        // Atau Anda bisa buat log dari aktivitas dataset
+        // Buat log dari aktivitas dataset
         const datasets = await prisma.dataset.findMany({
             orderBy: { created_at: 'desc' },
-            take: 10,
+            take: 20,
             select: {
                 id: true,
                 name: true,
@@ -145,11 +140,12 @@ app.post('/api/admin/logs', async (req, res) => {
 
         res.json(logs);
     } catch (err) {
+        console.error('Error loading logs:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// Download Template CSV
+// DOWNLOAD TEMPLATE
 app.get('/api/admin/template', (req, res) => {
     const template = 'nim,name,birth_date,position,division,note\n090001,Budi Santoso,1990/05/15,Staff IT,IT,Selamat datang!\n090002,Ani Wijaya,1992/08/22,Manager HRD,HRD,Terima kasih!';
     
@@ -158,18 +154,57 @@ app.get('/api/admin/template', (req, res) => {
     res.send(template);
 });
 
-// Import CSV menggunakan Prisma
-app.post('/api/admin/import', upload.single('csvFile'), async (req, res) => {
-    const datasetName = req.body.datasetName || 'Untitled Dataset';
-    const results = [];
+// IMPORT CSV - Perbaiki field name dan tambah header mapping
+const HEADER_MAP = {
+    'id': 'nim', 'nim': 'nim',
+    'nama': 'name', 'name': 'name',
+    'tanggal_lahir': 'birth_date', 'birth_date': 'birth_date', 'tanggal lahir': 'birth_date',
+    'posisi': 'position', 'position': 'position',
+    'divisi': 'division', 'division': 'division',
+    'pesan': 'note', 'note': 'note', 'message': 'note'
+};
 
-    if (!req.file) return res.status(400).json({ error: 'Tidak ada file' });
+function normalizeHeader(header) {
+    return HEADER_MAP[header.toLowerCase().trim()] || header.toLowerCase().trim();
+}
+
+app.post('/api/admin/import', upload.single('csv'), async (req, res) => {
+    const datasetName = req.body.name || req.body.datasetName || 'Untitled Dataset';
+    const results = [];
+    const errors = [];
+
+    if (!req.file) {
+        return res.status(400).json({ error: 'Tidak ada file yang diupload' });
+    }
 
     fs.createReadStream(req.file.path)
-        .pipe(csv())
-        .on('data', (data) => results.push(data))
+        .pipe(csv({
+            mapHeaders: ({ header }) => normalizeHeader(header)
+        }))
+        .on('data', (data) => {
+            // Validasi data minimal
+            if (!data.nim || !data.name) {
+                errors.push(`Baris ${results.length + 1}: NIM dan Nama wajib diisi`);
+                return;
+            }
+            results.push({
+                nim: String(data.nim).trim(),
+                name: String(data.name).trim(),
+                birth_date: data.birth_date || null,
+                position: String(data.position || '').trim(),
+                division: String(data.division || '').trim(),
+                note: String(data.note || '').trim()
+            });
+        })
         .on('end', async () => {
             try {
+                if (results.length === 0) {
+                    return res.status(400).json({ 
+                        error: 'CSV kosong atau format tidak valid',
+                        details: errors 
+                    });
+                }
+
                 // Transaksi: Matikan dataset lama & buat yang baru
                 await prisma.$transaction(async (tx) => {
                     await tx.dataset.updateMany({
@@ -181,25 +216,39 @@ app.post('/api/admin/import', upload.single('csvFile'), async (req, res) => {
                             name: datasetName,
                             is_active: 1,
                             records: {
-                                create: results.map(row => ({
-                                    nim: row.nim,
-                                    name: row.name,
-                                    birth_date: row.birth_date,
-                                    position: row.position,
-                                    division: row.division,
-                                    note: row.note
-                                }))
+                                create: results
                             }
                         }
                     });
+                    
+                    return newDataset;
                 });
 
-                res.json({ success: true, message: `${results.length} data diimport` });
+                // Hapus file temporary
+                fs.unlinkSync(req.file.path);
+
+                res.json({ 
+                    success: true, 
+                    message: `${results.length} data berhasil diimport` 
+                });
             } catch (err) {
+                console.error('Import error:', err);
+                // Hapus file jika error
+                if (fs.existsSync(req.file.path)) {
+                    fs.unlinkSync(req.file.path);
+                }
                 res.status(500).json({ error: err.message });
             }
+        })
+        .on('error', (err) => {
+            console.error('CSV parsing error:', err);
+            res.status(400).json({ error: 'Error parsing CSV: ' + err.message });
         });
 });
+
+// ============================================
+// CLIENT ENDPOINTS
+// ============================================
 
 // Get Stats
 app.get('/api/client/stats', async (req, res) => {
@@ -207,9 +256,7 @@ app.get('/api/client/stats', async (req, res) => {
         const activeDataset = await prisma.dataset.findFirst({
             where: { is_active: 1 },
             include: {
-                _count: {
-                    select: { records: true }
-                }
+                _count: { select: { records: true } }
             }
         });
 
@@ -273,6 +320,11 @@ app.get('/api/admin/export', async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+// 404 Handler
+app.use((req, res) => {
+    res.status(404).json({ error: 'Endpoint not found', path: req.path, method: req.method });
 });
 
 module.exports = app;
