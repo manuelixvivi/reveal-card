@@ -155,8 +155,8 @@ app.get('/api/admin/template', (req, res) => {
 
 app.post('/api/admin/import', upload.single('csvFile'), async (req, res) => {
     // Ambil field dari frontend (case insensitive)
-    const datasetName = req.body.Name || req.body.name || 'Untitled Dataset';
-    const datasetDesc = req.body.Description || req.body.description || '';
+    const datasetName = req.body.datasetName || req.body.Datasetname || 'Untitled Dataset';
+    const datasetDesc = req.body.datasetDesc || req.body.DatasetDesc|| '';
     
     console.log('Import request:', { 
         name: datasetName, 
