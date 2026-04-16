@@ -301,7 +301,12 @@ app.post('/api/client/reveal', async (req, res) => {
             where: {
                 nim: nim,
                 birth_date: birth_date,
-                dataset: { is_active: 1 }
+                dataset: { 
+                    is_active: 1
+                }
+            },
+            include: {
+                dataset: true
             }
         });
 
