@@ -996,8 +996,15 @@
             </button>
         `;
         
-        // Re-attach click handler
-        attachCardClickHandler();
+        document.addEventListener('DOMContentLoaded', () => {
+        // Pastikan elemennya ada sebelum dipasang listener
+        const cardElement = document.getElementById('hologramCard');
+        if (cardElement) {
+            attachCardClickHandler();
+        } else {
+            console.error("Elemen hologramCard tidak ditemukan di DOM!");
+        }
+    });
     }
 
     // Attach click handler ke card
