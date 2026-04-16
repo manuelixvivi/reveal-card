@@ -931,8 +931,8 @@
             
             const formData = new FormData();
             formData.append('csvFile', selectedFile);
-            formData.append('name', document.getElementById('datasetName').value);
-            formData.append('description', document.getElementById('datasetDesc').value);
+            formData.append('DatasetName', document.getElementById('datasetName').value);
+            formData.append('DatasetDesc', document.getElementById('datasetDesc').value);
             formData.append('admin_id', adminCredentials.admin_id);
             formData.append('admin_date', adminCredentials.admin_date);
 
