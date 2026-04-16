@@ -941,7 +941,7 @@
         errorMsg.style.display = 'none';
 
         try {
-            const response = await fetch('/api/client/check', {
+            const response = await fetch('/api/client/reveal', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: userId, tanggal_lahir: birthDate })
