@@ -4,27 +4,28 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("PRISMA_DATABASE_URL") // Menggunakan URL khusus Prisma dari Vercel
+  url      = env("PRISMA_DATABASE_URL")
 }
 
 model Dataset {
-  id         Int      @id @default(autoincrement())
-  name       String
-  created_at DateTime @default(now())
-  is_active  Int      @default(0)
-  records    Record[]
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  created_at  DateTime @default(now())
+  is_active   Int      @default(0)
+  records     Record[]
 }
 
 model Record {
-  id           Int      @id @default(autoincrement())
-  dataset_id   Int
-  dataset      Dataset  @relation(fields: [dataset_id], references: [id])
-  nim          String
-  name         String
-  birth_date   String
-  position     String?
-  division     String?
-  note         String?
-  is_revealed  Int      @default(0)
-  revealed_at  DateTime?
+  id          Int      @id @default(autoincrement())
+  dataset_id  Int
+  dataset     Dataset  @relation(fields: [dataset_id], references: [id])
+  nim         String
+  name        String
+  birth_date  String?
+  position    String?
+  division    String?
+  note        String?
+  is_revealed Int      @default(0)
+  revealed_at DateTime?
 }
