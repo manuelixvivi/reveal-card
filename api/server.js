@@ -25,6 +25,7 @@ const upload = multer({ dest: '/tmp/' });
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
+require('dotenv').config();
 
 function requireAdmin(req, res, next) {
     const adminId = req.body.admin_id || req.body.adminId;
