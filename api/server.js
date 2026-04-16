@@ -6,6 +6,7 @@ const csv = require('csv-parser');
 const { Parser } = require('@json2csv/plainjs');
 const fs = require('fs');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 
 const app = express();
 const prisma = new PrismaClient();
@@ -23,8 +24,10 @@ app.use('/api/', limiter);
 const upload = multer({ dest: '/tmp/' });
 
 // ============================================
-// HELPER: Admin Auth Middleware
+// HELPER FUNCTIONS
 // ============================================
+
+// Admin Auth Middleware
 function requireAdmin(req, res, next) {
     const adminId = req.body.admin_id || req.body.adminId;
     const adminDate = req.body.admin_date || req.body.adminDate;
@@ -33,6 +36,22 @@ function requireAdmin(req, res, next) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
     next();
+}
+
+// CSV Header Normalization
+const HEADER_MAP = {
+    'id': 'nim', 'nim': 'nim',
+    'nama': 'name', 'name': 'name',
+    'tanggal_lahir': 'birth_date', 'birth_date': 'birth_date',
+    'tanggal lahir': 'birth_date', 'tanggal_lahir': 'birth_date',
+    'posisi': 'position', 'position': 'position',
+    'divisi': 'division', 'division': 'division',
+    'pesan': 'note', 'note': 'note', 'message': 'note'
+};
+
+function normalizeHeader(header) {
+    const normalized = header.toLowerCase().trim().replace(/[_\s]+/g, '_');
+    return HEADER_MAP[normalized] || normalized;
 }
 
 // ============================================
@@ -49,13 +68,11 @@ app.post('/api/admin/login', (req, res) => {
     }
 });
 
-// GET DATASETS - Endpoint yang hilang!
+// Get Datasets
 app.post('/api/admin/datasets', requireAdmin, async (req, res) => {
     try {
         const datasets = await prisma.dataset.findMany({
-            include: {
-                _count: { select: { records: true } }
-            },
+            include: { _count: { select: { records: true } } },
             orderBy: { created_at: 'desc' }
         });
 
@@ -75,18 +92,13 @@ app.post('/api/admin/datasets', requireAdmin, async (req, res) => {
     }
 });
 
-// ACTIVATE DATASET
+// Activate Dataset
 app.post('/api/admin/activate', requireAdmin, async (req, res) => {
     const { dataset_id } = req.body;
     
     try {
         await prisma.$transaction(async (tx) => {
-            // Deactivate all
-            await tx.dataset.updateMany({
-                data: { is_active: 0 }
-            });
-            
-            // Activate selected
+            await tx.dataset.updateMany({ data: { is_active: 0 } });
             await tx.dataset.update({
                 where: { id: parseInt(dataset_id) },
                 data: { is_active: 1 }
@@ -95,40 +107,30 @@ app.post('/api/admin/activate', requireAdmin, async (req, res) => {
 
         res.json({ success: true, message: 'Dataset berhasil diaktifkan' });
     } catch (err) {
-        console.error('Error activating dataset:', err);
+        console.error('Error activating:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// DELETE DATASET
+// Delete Dataset
 app.post('/api/admin/delete', requireAdmin, async (req, res) => {
     const { dataset_id } = req.body;
     
     try {
-        await prisma.dataset.delete({
-            where: { id: parseInt(dataset_id) }
-        });
-
+        await prisma.dataset.delete({ where: { id: parseInt(dataset_id) } });
         res.json({ success: true, message: 'Dataset berhasil dihapus' });
     } catch (err) {
-        console.error('Error deleting dataset:', err);
+        console.error('Error deleting:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// GET LOGS - Endpoint yang hilang!
+// Get Logs
 app.post('/api/admin/logs', requireAdmin, async (req, res) => {
     try {
-        // Buat log dari aktivitas dataset
         const datasets = await prisma.dataset.findMany({
             orderBy: { created_at: 'desc' },
-            take: 20,
-            select: {
-                id: true,
-                name: true,
-                created_at: true,
-                is_active: true
-            }
+            take: 20
         });
 
         const logs = datasets.map(ds => ({
@@ -145,7 +147,7 @@ app.post('/api/admin/logs', requireAdmin, async (req, res) => {
     }
 });
 
-// DOWNLOAD TEMPLATE
+// Download Template
 app.get('/api/admin/template', (req, res) => {
     const template = 'nim,name,birth_date,position,division,note\n090001,Budi Santoso,1990/05/15,Staff IT,IT,Selamat datang!\n090002,Ani Wijaya,1992/08/22,Manager HRD,HRD,Terima kasih!';
     
@@ -154,22 +156,12 @@ app.get('/api/admin/template', (req, res) => {
     res.send(template);
 });
 
-// IMPORT CSV - Perbaiki field name dan tambah header mapping
-const HEADER_MAP = {
-    'id': 'nim', 'nim': 'nim',
-    'nama': 'name', 'name': 'name',
-    'tanggal_lahir': 'birth_date', 'birth_date': 'birth_date', 'tanggal lahir': 'birth_date',
-    'posisi': 'position', 'position': 'position',
-    'divisi': 'division', 'division': 'division',
-    'pesan': 'note', 'note': 'note', 'message': 'note'
-};
-
-function normalizeHeader(header) {
-    return HEADER_MAP[header.toLowerCase().trim()] || header.toLowerCase().trim();
-}
-
+// Import CSV
 app.post('/api/admin/import', upload.single('csv'), async (req, res) => {
-    const datasetName = req.body.name || 'Untitled Dataset';
+    // PERBAIKAN: Ambil field Name dan Description dengan benar
+    const datasetName = req.body.Name || req.body.name || 'Untitled Dataset';
+    const datasetDesc = req.body.Description || req.body.description || '';
+    
     const results = [];
     const errors = [];
 
@@ -182,62 +174,55 @@ app.post('/api/admin/import', upload.single('csv'), async (req, res) => {
             mapHeaders: ({ header }) => normalizeHeader(header)
         }))
         .on('data', (data) => {
-            // Validasi data minimal
-            if (!data.nim || !data.name) {
-                errors.push(`Baris ${results.length + 1}: NIM dan Nama wajib diisi`);
+            // Validasi minimal
+            if (!data.nim && !data.name) {
+                errors.push(`Baris ${results.length + 1}: NIM/ID dan Nama wajib diisi`);
                 return;
             }
+            
             results.push({
-                nim: String(data.nim).trim(),
-                name: String(data.name).trim(),
-                birth_date: data.birth_date || null,
-                position: String(data.position || '').trim(),
-                division: String(data.division || '').trim(),
-                note: String(data.note || '').trim()
+                nim: String(data.nim || data.id || '').trim(),
+                name: String(data.name || data.nama || '').trim(),
+                birth_date: data.birth_date || data.tanggal_lahir || null,
+                position: String(data.position || data.posisi || '').trim(),
+                division: String(data.division || data.divisi || '').trim(),
+                note: String(data.note || data.pesan || data.message || '').trim()
             });
         })
         .on('end', async () => {
             try {
+                if (errors.length > 0) {
+                    return res.status(400).json({ error: 'Validasi gagal', details: errors });
+                }
+                
                 if (results.length === 0) {
-                    return res.status(400).json({ 
-                        error: 'CSV kosong atau format tidak valid',
-                        details: errors 
-                    });
+                    return res.status(400).json({ error: 'CSV kosong atau format tidak valid' });
                 }
 
-                // Transaksi: Matikan dataset lama & buat yang baru
                 await prisma.$transaction(async (tx) => {
-                    await tx.dataset.updateMany({
-                        data: { is_active: 0 }
-                    });
-
+                    await tx.dataset.updateMany({ data: { is_active: 0 } });
+                    
                     const newDataset = await tx.dataset.create({
                         data: {
                             name: datasetName,
+                            description: datasetDesc,
                             is_active: 1,
-                            records: {
-                                create: results
-                            }
+                            records: { create: results }
                         }
                     });
-                    
-                    return newDataset;
-                });
 
-                // Hapus file temporary
-                fs.unlinkSync(req.file.path);
-
-                res.json({ 
-                    success: true, 
-                    message: `${results.length} data berhasil diimport` 
-                });
-            } catch (err) {
-                console.error('Import error:', err);
-                // Hapus file jika error
-                if (fs.existsSync(req.file.path)) {
                     fs.unlinkSync(req.file.path);
+                    
+                    res.json({ 
+                        success: true, 
+                        message: `${results.length} data berhasil diimport`,
+                        dataset: { id: newDataset.id, name: newDataset.name }
+                    });
+                } catch (err) {
+                    console.error('Import error:', err);
+                    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+                    res.status(500).json({ error: err.message });
                 }
-                res.status(500).json({ error: err.message });
             }
         })
         .on('error', (err) => {
@@ -250,19 +235,16 @@ app.post('/api/admin/import', upload.single('csv'), async (req, res) => {
 // CLIENT ENDPOINTS
 // ============================================
 
-// Get Stats
 app.get('/api/client/stats', async (req, res) => {
     try {
         const activeDataset = await prisma.dataset.findFirst({
             where: { is_active: 1 },
-            include: {
-                _count: { select: { records: true } }
-            }
+            include: { _count: { select: { records: true } } }
         });
 
         if (!activeDataset) return res.json({ total: 0, revealed: 0 });
 
-        const revealedCount = await prisma.record.count({
+        const revealedCount = await prisma.Record.count({
             where: { dataset_id: activeDataset.id, is_revealed: 1 }
         });
 
@@ -275,11 +257,10 @@ app.get('/api/client/stats', async (req, res) => {
     }
 });
 
-// Reveal Card (Login Client)
 app.post('/api/client/reveal', async (req, res) => {
     const { nim, birth_date } = req.body;
     try {
-        const record = await prisma.record.findFirst({
+        const record = await prisma.Record.findFirst({
             where: {
                 nim: nim,
                 birth_date: birth_date,
@@ -287,36 +268,33 @@ app.post('/api/client/reveal', async (req, res) => {
             }
         });
 
-        if (record) {
-            if (record.is_revealed === 0) {
-                await prisma.record.update({
-                    where: { id: record.id },
-                    data: { 
-                        is_revealed: 1, 
-                        revealed_at: new Date() 
-                    }
-                });
-            }
-            res.json({ success: true, data: record });
-        } else {
-            res.status(404).json({ success: false, message: "Data tidak ditemukan" });
+        if (!record) {
+            return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
         }
+
+        if (record.is_revealed === 0) {
+            await prisma.Record.update({
+                where: { id: record.id },
+                data: { is_revealed: 1, revealed_at: new Date() }
+            });
+        }
+
+        res.json({ success: true, data: record });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// Export Data
 app.get('/api/admin/export', async (req, res) => {
     try {
-        const records = await prisma.record.findMany({
+        const records = await prisma.Record.findMany({
             where: { dataset: { is_active: 1 } },
             select: { nim: true, name: true, is_revealed: true, revealed_at: true }
         });
         
         const parser = new Parser();
         const csvData = parser.parse(records);
-        res.header('Content-Type', 'text/csv').attachment('stats.csv').send(csvData);
+        res.header('Content-Type', 'text/csv').attachment('Stats.csv').send(csvData);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -324,7 +302,28 @@ app.get('/api/admin/export', async (req, res) => {
 
 // 404 Handler
 app.use((req, res) => {
-    res.status(404).json({ error: 'Endpoint not found', path: req.path, method: req.method });
+    res.status(404).json({ 
+        error: 'Endpoint not found', 
+        path: req.path, 
+        method: req.method,
+        available: [
+            'POST /api/admin/login',
+            'POST /api/admin/datasets',
+            'POST /api/admin/activate', 
+            'POST /api/admin/delete',
+            'POST /api/admin/logs',
+            'POST /api/admin/import',
+            'GET /api/admin/template',
+            'GET /api/admin/export',
+            'GET /api/client/stats',
+            'POST /api/client/reveal'
+        ]
+    });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
 
 module.exports = app;
