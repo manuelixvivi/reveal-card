@@ -169,7 +169,7 @@ function normalizeHeader(header) {
 }
 
 app.post('/api/admin/import', upload.single('csv'), async (req, res) => {
-    const datasetName = req.body.name || req.body.datasetName || 'Untitled Dataset';
+    const datasetName = req.body.name || 'Untitled Dataset';
     const results = [];
     const errors = [];
 
