@@ -286,6 +286,7 @@ app.get('/api/client/stats', async (req, res) => {
         });
 
         res.json({
+            name: activeDataset.name,
             total: activeDataset._count.records,
             revealed: revealedCount
         });
