@@ -893,7 +893,7 @@
     // Check server status
     async function checkServerStatus() {
         try {
-            const response = await fetch('/api/client/active-info');
+            const response = await fetch('/api/client/stats');
             const dot = document.getElementById('statusDot');
             const text = document.getElementById('statusText');
             
