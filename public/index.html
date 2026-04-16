@@ -923,103 +923,98 @@
 
     // Form Submit
     document.getElementById('revealForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const userId = document.getElementById('userId').value.trim();
-        const birthDate = document.getElementById('birthDate').value.trim();
+    e.preventDefault();
+    
+        // 1. Ambil ID yang benar (userId)
+        const userIdInput = document.getElementById('userId').value.trim();
+        const birthDateInput = document.getElementById('birthDate').value.trim();
         const errorMsg = document.getElementById('errorMsg');
         const errorText = document.getElementById('errorText');
-
+    
+        // Validasi format YYYY/MM/DD
         const dateRegex = /^\d{4}\/\d{2}\/\d{2}$/;
-        if (!dateRegex.test(birthDate)) {
-            errorText.textContent = 'Format tanggal harus YYYY/MM/DD (Contoh: 2000/05/15)';
+        if (!dateRegex.test(birthDateInput)) {
+            errorText.textContent = 'Format harus YYYY/MM/DD (Contoh: 2000/05/15)';
             errorMsg.style.display = 'flex';
             return;
         }
-
+    
         showLoader(true);
         errorMsg.style.display = 'none';
-
+    
         try {
             const response = await fetch('/api/client/reveal', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nim: nim, birth_date: birthDate })
+                // 2. Gunakan userIdInput untuk key 'nim' agar cocok dengan backend
+                body: JSON.stringify({ nim: userIdInput, birth_date: birthDateInput })
             });
-
+    
             const result = await response.json();
-
+    
             if (response.ok && result.success) {
+                // result.data berisi { name, position, division, note, ... }
                 showResult(result.data);
             } else {
-                errorText.textContent = result.error || 'Data tidak ditemukan. Periksa ID dan Tanggal Lahir.';
+                errorText.textContent = result.message || 'Data tidak ditemukan.';
                 errorMsg.style.display = 'flex';
             }
         } catch (err) {
-            errorText.textContent = 'Gagal terhubung ke server. Coba lagi.';
+            errorText.textContent = 'Koneksi terputus. Pastikan server aktif.';
             errorMsg.style.display = 'flex';
         } finally {
             showLoader(false);
         }
     });
-
-    // Show Result
+    
+    // Show Result - PERBAIKAN MAPPING DATA
     function showResult(data) {
         document.getElementById('loginCard').style.display = 'none';
         document.getElementById('hologramContainer').style.display = 'block';
-        
-        // Reset reveal state
         isRevealed = false;
-
+    
         const revealContent = document.getElementById('revealContent');
+        // 3. Gunakan data.name, data.position, dll (sesuai schema.prisma)
         revealContent.innerHTML = `
             <div class="avatar-glow">👨‍🚀</div>
-            <div class="recipient-name">${data.nama}</div>
-            <div class="recipient-id">ID: ${data.user_id}</div>
-
+            <div class="recipient-name">${data.name}</div>
+            <div class="recipient-id">NIM: ${data.nim}</div>
+    
             <div class="data-crystal">
                 <div class="crystal-label">Posisi</div>
-                <div class="crystal-value">${data.posisi}</div>
+                <div class="crystal-value">${data.position || 'N/A'}</div>
             </div>
-
+    
             <div class="data-crystal">
                 <div class="crystal-label">Divisi</div>
-                <div class="crystal-value">${data.divisi}</div>
+                <div class="crystal-value">${data.division || 'N/A'}</div>
             </div>
-
+    
             <div class="message-pod">
-                <div class="message-text">${data.pesan}</div>
+                <div class="message-text">${data.note || 'Tidak ada pesan kosmik.'}</div>
             </div>
-
+    
             <button class="wormhole-reset" onclick="resetPortal(event)">
                 🔄 Cek Data Lain
             </button>
         `;
         
-        document.addEventListener('DOMContentLoaded', () => {
-        // Pastikan elemennya ada sebelum dipasang listener
-        const cardElement = document.getElementById('hologramCard');
-        if (cardElement) {
-            attachCardClickHandler();
-        } else {
-            console.error("Elemen hologramCard tidak ditemukan di DOM!");
-        }
-    });
+        // Pasang handler klik SETELAH konten dirender
+        attachCardClickHandler();
     }
-
-    // Attach click handler ke card
+    
     function attachCardClickHandler() {
         const card = document.getElementById('hologramCard');
+        if (!card) return;
+        
+        // Mystery side adalah area yang diklik untuk reveal
         const mysterySide = card.querySelector('.mystery-side');
-        
-        // Hapus event listener lama jika ada
-        mysterySide.onclick = null;
-        
-        // Tambah event listener baru
-        mysterySide.onclick = function(e) {
-            e.stopPropagation();
-            revealCard();
-        };
+        if (mysterySide) {
+            mysterySide.onclick = function(e) {
+                e.stopPropagation();
+                revealCard();
+            };
+        }
     }
 
     // Reveal Card Animation - PERBAIKAN UTAMA
