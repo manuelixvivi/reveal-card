@@ -944,12 +944,12 @@
             const response = await fetch('/api/client/reveal', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nim: nim, tanggal_lahir: birthDate })
+                body: JSON.stringify({ nim: nim, birth_date: birthDate })
             });
 
             const result = await response.json();
 
-            if (response.ok && result.found) {
+            if (response.ok && result.success) {
                 showResult(result.data);
             } else {
                 errorText.textContent = result.error || 'Data tidak ditemukan. Periksa ID dan Tanggal Lahir.';
