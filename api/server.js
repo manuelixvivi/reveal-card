@@ -152,7 +152,7 @@ app.get('/api/admin/template', (req, res) => {
 // IMPORT CSV - PERBAIKAN UTAMA
 // ============================================
 
-app.post('/api/admin/import', upload.single('csv'), async (req, res) => {
+app.post('/api/admin/import', upload.single('csvFile'), async (req, res) => {
     // Ambil field dari frontend (case insensitive)
     const datasetName = req.body.Name || req.body.name || 'Untitled Dataset';
     const datasetDesc = req.body.Description || req.body.description || '';
