@@ -944,7 +944,7 @@
             const response = await fetch('/api/client/reveal', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId, tanggal_lahir: birthDate })
+                body: JSON.stringify({ nim: nim, tanggal_lahir: birthDate })
             });
 
             const result = await response.json();
