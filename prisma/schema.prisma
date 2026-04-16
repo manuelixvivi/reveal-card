@@ -19,7 +19,7 @@ model Dataset {
 model Record {
   id          Int      @id @default(autoincrement())
   dataset_id  Int
-  dataset     Dataset  @relation(fields: [dataset_id], references: [id])
+  dataset     Dataset  @relation(fields: [dataset_id], references: [id], onDelete: Cascade)
   nim         String
   name        String
   birth_date  String?
