@@ -341,7 +341,7 @@
         }
 
         .hologram-card.revealed .reveal-side {
-            pointer-events: auto; /* Re-enable untuk button di dalam */
+            pointer-events: auto;
         }
 
         .card-side {
@@ -434,13 +434,13 @@
            background: linear-gradient(145deg, #0f172a, #1e1b4b);
             border: 2px solid rgba(251, 191, 36, 0.5);
             transform: rotateY(180deg);
-            padding: 30px 25px; /* Kurangi padding horizontal */
+            padding: 30px 25px;
             display: flex;
             flex-direction: column;
             align-items: center;
             box-shadow: 0 0 80px rgba(251, 191, 36, 0.2);
-            overflow-y: auto; /* Tambah scroll jika perlu */
-            max-height: 100%; /* Batasi tinggi */
+            overflow-y: auto;
+            max-height: 100%; 
         }
 
         .reveal-side::before {
@@ -477,18 +477,18 @@
 
         @media (max-width: 600px) {
     .hologram-card { 
-        height: auto; /* Auto height */
+        height: auto;
         min-height: 500px;
-        max-height: 80vh; /* Batasi tinggi viewport */
+        max-height: 80vh;
     }
     
     .reveal-side {
         padding: 20px 15px;
-        overflow-y: auto; /* Scroll jika konten panjang */
+        overflow-y: auto;
     }
     
     .crystal-value {
-        font-size: 1.2rem; /* Kecilin font di mobile */
+        font-size: 1.2rem;
     }
     
     .recipient-name {
@@ -501,16 +501,14 @@
     }
 }
 
-/* Fix untuk teks yang sangat panjang - tambahkan ellipsis jika perlu */
 .crystal-value.long-text {
-    font-size: 1.1rem; /* Kecilin jika teks panjang */
+    font-size: 1.1rem;
 }
 
-/* Ensure proper box sizing */
 * {
     margin: 0;
     padding: 0;
-    box-sizing: border-box; /* Pastikan semua element pakai border-box */
+    box-sizing: border-box;
 }
 
         @keyframes avatarPulse {
@@ -520,7 +518,7 @@
 
         .recipient-name {
             font-family: 'Orbitron', sans-serif;
-            font-size: 1.6rem; /* Sedikit kecilin */
+            font-size: 1.6rem;
             text-align: center;
             margin-bottom: 5px;
             background: linear-gradient(to right, white, var(--starlight));
@@ -528,7 +526,7 @@
             -webkit-text-fill-color: transparent;
             position: relative;
             z-index: 1;
-            line-height: 1.4; /* Tambah line height */
+            line-height: 1.4;
             word-wrap: break-word;
             max-width: 100%;
             padding: 0 10px;
@@ -548,13 +546,13 @@
             background: rgba(15, 23, 42, 0.8);
             border: 1px solid rgba(96, 165, 250, 0.3);
             border-radius: 16px;
-            padding: 20px; /* Sedikit kurangi padding */
-            margin-bottom: 15px; /* Kurangi margin */
+            padding: 20px;
+            margin-bottom: 15px;
             position: relative;
             overflow: hidden;
             z-index: 1;
             transition: all 0.3s;
-            min-height: 80px; /* Minimum height */
+            min-height: 80px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -590,11 +588,11 @@
             font-size: 1.4rem;
             color: var(--text-primary);
             font-weight: 700;
-            line-height: 1.3; /* Tambah line height */
-            word-wrap: break-word; /* Prevent overflow */
+            line-height: 1.3;
+            word-wrap: break-word;
             overflow-wrap: break-word;
-            max-width: 100%; /* Batasi lebar */
-            padding-right: 10px; /* Padding kanan */
+            max-width: 100%;
+            padding-right: 10px;
         }
 
         .division-badge {
@@ -797,26 +795,21 @@
     </style>
 </head>
 <body>
-    <!-- Background Elements -->
     <div class="cosmos"></div>
     <div class="galaxy"></div>
     <div class="starfield" id="starfield"></div>
 
-    <!-- Server Status -->
     <div class="server-status" id="serverStatus">
         <div class="status-dot" id="statusDot"></div>
         <span id="statusText">Menghubungkan...</span>
     </div>
 
-    <!-- Main Portal -->
     <div class="portal">
-        <!-- Header -->
         <div class="celestial-header">
             <h1 class="logo-glow">Aspiriant Reveal for Cawu 3</h1>
             <p class="subtitle">SPDA (Sistem Pengumuman Divisi Aspire)</p>
         </div>
 
-        <!-- Login Form -->
         <div class="nebula-card" id="loginCard">
             <div class="card-content">
                 <div class="error-wormhole" id="errorMsg">
@@ -826,12 +819,12 @@
 
                 <form id="revealForm">
                     <div class="input-wormhole">
-                        <label>🆔 Nomor ID</label>
+                        <label>Nomor ID</label>
                         <input type="text" class="cosmic-input" id="userId" placeholder="Masukkan ID Anda" required>
                     </div>
 
                     <div class="input-wormhole">
-                        <label>🎂 Tanggal Lahir</label>
+                        <label>Tanggal Lahir</label>
                         <input type="text" class="cosmic-input" id="birthDate" placeholder="YYYY/MM/DD" required maxlength="10">
                         <div class="date-hint">Format: Tahun/Bulan/Tanggal (Contoh: 2000/05/15)</div>
                     </div>
@@ -843,27 +836,22 @@
             </div>
         </div>
 
-        <!-- Hologram Result -->
         <div class="hologram-container" id="hologramContainer">
             <div class="hologram-card" id="hologramCard" onclick="revealCard()">              
                 <div class="card-side reveal-side" id="revealContent">
-                    <!-- Content injected via JS -->
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Loader -->
     <div class="warp-loader" id="warpLoader">
         <div class="warp-core"></div>
     </div>
 
 <script>
-    // State
     let isRevealed = false;
     let currentTilt = { x: 0, y: 0 };
 
-    // Create cosmic background
     function createCosmos() {
         const starfield = document.getElementById('starfield');
         
@@ -890,7 +878,6 @@
     }
     createCosmos();
 
-    // Check server status
     async function checkServerStatus() {
         try {
             const response = await fetch('/api/client/stats');
@@ -912,7 +899,6 @@
     checkServerStatus();
     setInterval(checkServerStatus, 30000);
 
-    // Auto-format date input
     const dateInput = document.getElementById('birthDate');
     dateInput.addEventListener('input', (e) => {
         let value = e.target.value.replace(/\D/g, '');
@@ -921,17 +907,14 @@
         e.target.value = value;
     });
 
-    // Form Submit
     document.getElementById('revealForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
-        // 1. Ambil ID yang benar (userId)
+
         const userIdInput = document.getElementById('userId').value.trim();
         const birthDateInput = document.getElementById('birthDate').value.trim();
         const errorMsg = document.getElementById('errorMsg');
         const errorText = document.getElementById('errorText');
-    
-        // Validasi format YYYY/MM/DD
+
         const dateRegex = /^\d{4}\/\d{2}\/\d{2}$/;
         if (!dateRegex.test(birthDateInput)) {
             errorText.textContent = 'Format harus YYYY/MM/DD (Contoh: 2000/05/15)';
@@ -946,14 +929,12 @@
             const response = await fetch('/api/client/reveal', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                // 2. Gunakan userIdInput untuk key 'nim' agar cocok dengan backend
                 body: JSON.stringify({ nim: userIdInput, birth_date: birthDateInput })
             });
     
             const result = await response.json();
     
             if (response.ok && result.success) {
-                // result.data berisi { name, position, division, note, ... }
                 showResult(result.data);
             } else {
                 errorText.textContent = result.message || 'Data tidak ditemukan.';
@@ -966,15 +947,13 @@
             showLoader(false);
         }
     });
-    
-    // Show Result - PERBAIKAN MAPPING DATA
+
     function showResult(data) {
         document.getElementById('loginCard').style.display = 'none';
         document.getElementById('hologramContainer').style.display = 'block';
         isRevealed = false;
     
         const revealContent = document.getElementById('revealContent');
-        // 3. Gunakan data.name, data.position, dll (sesuai schema.prisma)
         revealContent.innerHTML = `
             <div class="avatar-glow">👨‍🚀</div>
             <div class="recipient-name">${data.name}</div>
@@ -995,11 +974,10 @@
             </div>
     
             <button class="wormhole-reset" onclick="resetPortal(event)">
-                🔄 Cek Data Lain
+                Cek Data Lain
             </button>
         `;
         
-        // Pasang handler klik SETELAH konten dirender
         attachCardClickHandler();
     }
     
@@ -1007,7 +985,6 @@
         const card = document.getElementById('hologramCard');
         if (!card) return;
         
-        // Mystery side adalah area yang diklik untuk reveal
         const mysterySide = card.querySelector('.mystery-side');
         if (mysterySide) {
             mysterySide.onclick = function(e) {
@@ -1017,27 +994,22 @@
         }
     }
 
-    // Reveal Card Animation - PERBAIKAN UTAMA
     function revealCard() {
-        if (isRevealed) return; // Cegah double click
+        if (isRevealed) return;
         
         const card = document.getElementById('hologramCard');
-        
-        // Hapus event listener tilt agar tidak conflict
+
         document.removeEventListener('mousemove', handleTilt);
         document.removeEventListener('mouseleave', resetTilt);
-        
-        // Tambah class revealed
+
         card.classList.add('revealed');
         isRevealed = true;
         
-        // Trigger particle effect
         setTimeout(() => {
             createParticleExplosion();
         }, 300);
     }
 
-    // Tilt effect handlers
     function handleTilt(e) {
         const card = document.getElementById('hologramCard');
         if (!card || isRevealed) return;
@@ -1064,7 +1036,6 @@
         card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0)';
     }
 
-    // Particle Explosion Effect
     function createParticleExplosion() {
         const card = document.getElementById('hologramCard');
         const rect = card.getBoundingClientRect();
@@ -1092,24 +1063,20 @@
         }
     }
 
-    // Reset Portal
     function resetPortal(e) {
         if (e) e.stopPropagation();
         
         const card = document.getElementById('hologramCard');
         
-        // Reset state
         isRevealed = false;
         card.classList.remove('revealed');
         card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0)';
         
-        // Re-attach tilt listeners
         setTimeout(() => {
             document.addEventListener('mousemove', handleTilt);
             document.addEventListener('mouseleave', resetTilt);
         }, 100);
         
-        // Switch view
         setTimeout(() => {
             document.getElementById('hologramContainer').style.display = 'none';
             document.getElementById('loginCard').style.display = 'block';
@@ -1118,16 +1085,13 @@
         }, 600);
     }
 
-    // UI Helpers
     function showLoader(show) {
         document.getElementById('warpLoader').style.display = show ? 'block' : 'none';
     }
 
-    // Initialize tilt effect
     document.addEventListener('mousemove', handleTilt);
     document.addEventListener('mouseleave', resetTilt);
     
-    // Attach initial click handler
     attachCardClickHandler();
 </script>
 </body>
